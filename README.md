@@ -37,6 +37,13 @@ Execute o arquivo .dpr
 Telegram4D.dpk
 ```
     
+## Uso/Exemplos
+
+```
+Use nosso demo para conhecer as funcionalidades e seu uso.
+```
+
+
 ## Suporte
 
 Para suporte, mande uma alô no Discord: bmcoder#3620.
@@ -49,6 +56,13 @@ Para suporte, mande uma alô no Discord: bmcoder#3620.
 
 ## Licença
 
-[MIT](https://choosealicense.com/licenses/mit/)
 
+
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+
+
+## Doe um cafezinho
+
+Pix: bmcoderr@gmail.com
 
