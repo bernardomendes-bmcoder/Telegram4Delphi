@@ -39,7 +39,9 @@ requires
   RESTComponents,
   FireDAC,
   FireDACCommonDriver,
-  FireDACCommon;
+  FireDACCommon,
+  MercadoPago,
+  FutBet4Delphi;
 
 contains
   Telegram.Emoticons in '..\src\Telegram.Emoticons.pas',
@@ -47,6 +49,7 @@ contains
   Telegram in '..\src\Telegram.pas',
   Telegram.Request in '..\src\Telegram.Request.pas',
   Telegram.Returns in '..\src\Telegram.Returns.pas',
-  Telegram.Returns.Pooling in '..\src\Telegram.Returns.Pooling.pas';
+  Telegram.Returns.Pooling in '..\src\Telegram.Returns.Pooling.pas',
+  Telegram.ReadMsg in '..\src\Telegram.ReadMsg.pas';
 
 end.

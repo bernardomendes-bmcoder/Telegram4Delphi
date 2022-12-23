@@ -9,6 +9,9 @@ interface
  SET_WEBHOOK    = 'https://api.telegram.org/bot<token>/setWebhook';
  DELETE_WEBHOOK = 'https://api.telegram.org/bot<token>/deleteWebhook';
 
+ type
+ TReceiveMessage = (rmWebhook, rmPooling);
+
 implementation
 
 end.

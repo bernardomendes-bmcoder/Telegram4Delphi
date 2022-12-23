@@ -119,12 +119,15 @@
         <DCCReference Include="FireDAC.dcp"/>
         <DCCReference Include="FireDACCommonDriver.dcp"/>
         <DCCReference Include="FireDACCommon.dcp"/>
+        <DCCReference Include="MercadoPago.dcp"/>
+        <DCCReference Include="FutBet4Delphi.dcp"/>
         <DCCReference Include="..\src\Telegram.Emoticons.pas"/>
         <DCCReference Include="..\src\Telegram.Consts.pas"/>
         <DCCReference Include="..\src\Telegram.pas"/>
         <DCCReference Include="..\src\Telegram.Request.pas"/>
         <DCCReference Include="..\src\Telegram.Returns.pas"/>
         <DCCReference Include="..\src\Telegram.Returns.Pooling.pas"/>
+        <DCCReference Include="..\src\Telegram.ReadMsg.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

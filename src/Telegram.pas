@@ -10,20 +10,26 @@ System.Variants,
 System.Classes,
 Telegram.Request,
 Telegram.Returns,
+Telegram.Consts,
+Telegram.ReadMsg,
 Telegram.Returns.Pooling,
 System.SysUtils;
 
 type
-TOnWebhookStatus  = procedure(const AStatus: string) of object;
+TOnWebhookStatus  = procedure(const AStatus: Boolean = False) of object;
 TOnMessage        = procedure(ARetMessage: TRetMessage) of object;
 TOnMessagePooling = procedure(ARetMessage: TRetMessagePooling) of object;
 TOnError          = procedure(const AError: string) of object;
 
 TConfig = class(TComponent)
 private
-FTokenBot: string;
+FTokenBot   : string;
+FTypeReceive: TReceiveMessage;
+procedure SetTokenBot(const Value: string);
+procedure SetTypeReceive(const Value: TReceiveMessage);
 published
-property TokenBot: string read FTokenBot write FTokenBot;
+property TokenBot   : string          read FTokenBot    write SetTokenBot;
+property TypeReceive: TReceiveMessage read FTypeReceive write SetTypeReceive default rmPooling;
 end;
 
 TWebhook = class(TComponent)
@@ -42,6 +48,8 @@ TTelegram4D = class(TComponent)
  FAbout  : string;
  FConfig : TConfig;
  FWebhook: TWebhook;
+ FThread : TUnReadMsg;
+ FRetMessagePooling: TRetMessagePooling;
  FOnWebhookStatus: TOnWebhookStatus;
  FOnMessage: TOnMessage;
  FOnMessagePooling: TOnMessagePooling;
@@ -59,9 +67,10 @@ TTelegram4D = class(TComponent)
  procedure SendMessage(const AChatID: string; AMessage: string);
  procedure ReadMessage(const AUpdateId: Integer);
  procedure GetUpdate;
-
+ procedure StartPooling;
  procedure StartWebhook;
  procedure StopWebhook;
+ procedure ShutDown;
 
  constructor Create(AOwner: TComponent); override;
  destructor Destroy; override;
@@ -109,7 +118,11 @@ end;
 
 destructor TTelegram4D.Destroy;
 begin
-
+ if Assigned(FThread) then
+  begin
+   FThread.FreeOnTerminate := true;
+   FThread.Terminate;
+  end;
   inherited;
 end;
 
@@ -165,24 +178,115 @@ end;
 
 procedure TTelegram4D.StartWebhook;
 begin
- THorse.Post('/wbtelegram',  WhMessage);
- {$IF DEFINED(HORSE_CGI)}
- THorse.Listen;
- {$ELSE}
- if not THorse.IsRunning = true then
- THorse.Listen(FWebhook.Port);
- {$ENDIF}
- THorse.Listen(9000);
+ if FConfig.TypeReceive = rmPooling then
+ begin
+  if Assigned(FOnError) then
+  FOnError('Select receipt type for webhook');
+  Exit;
+ end;
+
+ try
+  TTelegramRequest.SetWebhook(FConfig.TokenBot,FWebhook.Host+'/wbtelegram');
+  THorse.Post('/wbtelegram',  WhMessage);
+  {$IF DEFINED(HORSE_CGI)}
+  THorse.Listen;
+  {$ELSE}
+  if not THorse.IsRunning = true then
+  THorse.Listen(FWebhook.Port);
+  {$ENDIF}
+ finally
+  if Assigned(FOnWebhookStatus) then
+  FOnWebhookStatus(True);
+ end;
 end;
 
 procedure TTelegram4D.StopWebhook;
 begin
- {$IF DEFINED(HORSE_CGI)}
- THorse.StopListen;
- {$ELSE}
- if THorse.IsRunning = true then
- THorse.StopListen;
- {$ENDIF}
+try
+ try
+  TTelegramRequest.DeleteWebhook(FConfig.TokenBot);
+  {$IF DEFINED(HORSE_CGI)}
+  THorse.StopListen;
+  {$ELSE}
+  if THorse.IsRunning = true then
+  THorse.StopListen;
+  {$ENDIF}
+ finally
+  if Assigned(FOnWebhookStatus) then
+  FOnWebhookStatus(False);
+ end;
+except
+ on E:Exception do
+ if Assigned(FOnError) then
+ FOnError(E.Message);
+end;
+end;
+
+procedure TTelegram4D.StartPooling;
+ begin
+  if FConfig.TypeReceive = rmWebhook then
+  begin
+   if Assigned(FOnError) then
+   FOnError('Select receipt type for pooling');
+   Exit;
+  end;
+
+  FThread := TUnReadMsg.Create(
+  procedure
+  var I: Integer;
+  begin
+   while Assigned(FThread) do
+    begin
+     if FConfig.TypeReceive = rmPooling then
+      begin
+        try
+         FThread.Sleep(2000);
+         if not Assigned(FRetMessagePooling) then
+         FRetMessagePooling := TRetMessagePooling.Create;
+
+         FRetMessagePooling := TTelegramRequest.GetUpdate(FConfig.TokenBot);
+         if Length(FRetMessagePooling.Result) > 0 then
+         begin
+          if Assigned(FOnMessagePooling) then
+          FOnMessagePooling(FRetMessagePooling);
+
+          for I := Low(FRetMessagePooling.Result) to High(FRetMessagePooling.Result) do
+          begin
+           TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.Result[I].UpdateId);
+          end;
+         end;
+        except
+         on E:Exception do
+         if Assigned(FOnError) then
+         FOnError(E.Message);
+        end;
+      end;
+    end;
+  end);
+  FThread.Start;
+ end;
+
+procedure TTelegram4D.ShutDown;
+ begin
+ if Assigned(FRetMessagePooling) then
+ FRetMessagePooling.Free;
+
+ if Assigned(FThread) then
+  begin
+   FThread.FreeOnTerminate := true;
+   FThread.Terminate;
+  end;
+ end;
+{ TConfig }
+
+procedure TConfig.SetTokenBot(const Value: string);
+begin
+ FTokenBot := Value;
+end;
+
+procedure TConfig.SetTypeReceive(const Value: TReceiveMessage);
+begin
+ FTypeReceive := Value;
 end;
 
 end.
