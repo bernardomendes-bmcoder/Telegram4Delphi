@@ -7,6 +7,7 @@ interface
  SEND_PHOTO     = 'https://api.telegram.org/bot<token>/sendPhoto';
  GET_UPDATE     = 'https://api.telegram.org/bot<token>/getUpdates';
  SET_WEBHOOK    = 'https://api.telegram.org/bot<token>/setWebhook';
+ INFO_WEBHOOK   = 'https://api.telegram.org/bot<token>/getWebhookInfo';
  DELETE_WEBHOOK = 'https://api.telegram.org/bot<token>/deleteWebhook';
 
  type

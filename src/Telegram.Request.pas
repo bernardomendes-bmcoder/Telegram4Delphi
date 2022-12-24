@@ -18,6 +18,7 @@ TTelegramRequest = class
  class procedure SendMessage(const ATokenBot: string; const AChatID: string; AMessage: string);
  class procedure SendImage(const ATokenBot: string; const AChatID: string; const AImageUrl: string; const ACaption: string);
  class function GetUpdate(const ATokenBot: string): TRetMessagePooling;
+ class function GetInfoWebhook(ATokenBot: string): Boolean;
  class procedure ReadMessage(const ATokenBot: string; const AUpdateId: Integer);
  class procedure SetWebhook(const ATokenBot: string; const AUrl: string);
  class procedure DeleteWebhook(const ATokenBot: string);
@@ -76,15 +77,15 @@ var
   LResponse: IResponse;
   URL: string;
 begin
-   URL := SEND_MESSAGE;
-   URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+ URL := SEND_MESSAGE;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
 
-   LResponse := TRequest.New.BaseURL(URL)
-  .AddParam('chat_id', AChatID)
-  .AddParam('text', AMessage)
-  .AddParam('parse_mode','markdown')
-  .Accept('application/json')
-  .Get;
+ LResponse := TRequest.New.BaseURL(URL)
+ .AddParam('chat_id', AChatID)
+ .AddParam('text', AMessage)
+ .AddParam('parse_mode','markdown')
+ .Accept('application/json')
+ .Get;
 end;
 
 class procedure TTelegramRequest.SendImage(const ATokenBot: string; const AChatID: string; const AImageUrl: string; const ACaption: string);
@@ -92,16 +93,48 @@ var
   LResponse: IResponse;
   URL: string;
 begin
-   URL := SEND_PHOTO;
-   URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+ URL := SEND_PHOTO;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
 
-   LResponse := TRequest.New.BaseURL(URL)
-  .AddParam('chat_id', AChatID)
-  .AddParam('caption', ACaption)
-  .AddParam('photo', AImageUrl)
-  .AddParam('parse_mode','markdown')
+ LResponse := TRequest.New.BaseURL(URL)
+ .AddParam('chat_id', AChatID)
+ .AddParam('caption', ACaption)
+ .AddParam('photo', AImageUrl)
+ .AddParam('parse_mode','markdown')
+ .Accept('application/json')
+ .Get;
+end;
+
+class function TTelegramRequest.GetInfoWebhook(ATokenBot: string): Boolean;
+var
+  LResponse: IResponse;
+  URL: string;
+  LJson: j4dl.TJson;
+begin
+ URL := INFO_WEBHOOK;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+try
+ try
+  LResponse := TRequest.New.BaseURL(URL)
   .Accept('application/json')
   .Get;
+
+  if LResponse.StatusCode = 200 then
+  begin
+   LJson := j4dl.TJson.Create;
+   LJson.Parse(LResponse.Content);
+   if LJson.JsonObject.Values['result'].AsObject.Values['url'].AsString = '' then
+   Result := False;
+
+   if LJson.JsonObject.Values['result'].AsObject.Values['url'].AsString <> '' then
+   Result := True;
+  end;
+ finally
+  FreeAndNil(LJson);
+ end;
+except
+ Result := False;
+end;
 end;
 
 class procedure TTelegramRequest.SetWebhook(const ATokenBot: string; const AUrl: string);
@@ -109,13 +142,13 @@ var
   LResponse: IResponse;
   URL: string;
 begin
-   URL := SET_WEBHOOK;
-   URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+ URL := SET_WEBHOOK;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
 
-   LResponse := TRequest.New.BaseURL(URL)
-  .AddParam('url', AUrl)
-  .Accept('application/json')
-  .Get;
+  LResponse := TRequest.New.BaseURL(URL)
+ .AddParam('url', AUrl)
+ .Accept('application/json')
+ .Get;
 end;
 
 class procedure TTelegramRequest.DeleteWebhook(const ATokenBot: string);
@@ -123,13 +156,11 @@ var
   LResponse: IResponse;
   URL: string;
 begin
-   URL := DELETE_WEBHOOK;
-   URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+ URL := DELETE_WEBHOOK;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
 
-   LResponse := TRequest.New.BaseURL(URL)
-  .Accept('application/json')
-  .Get;
+ LResponse := TRequest.New.BaseURL(URL)
+ .Accept('application/json')
+ .Get;
 end;
-
-
 end.

@@ -118,12 +118,15 @@ end;
 
 destructor TTelegram4D.Destroy;
 begin
+ if Assigned(FRetMessagePooling) then
+ FRetMessagePooling.Free;
+
  if Assigned(FThread) then
-  begin
+ begin
    FThread.FreeOnTerminate := true;
    FThread.Terminate;
-  end;
-  inherited;
+ end;
+ inherited;
 end;
 
 procedure TTelegram4D.GetUpdate;
@@ -186,7 +189,9 @@ begin
  end;
 
  try
+  if TTelegramRequest.GetInfoWebhook(FConfig.TokenBot) = False then
   TTelegramRequest.SetWebhook(FConfig.TokenBot,FWebhook.Host+'/wbtelegram');
+
   THorse.Post('/wbtelegram',  WhMessage);
   {$IF DEFINED(HORSE_CGI)}
   THorse.Listen;
@@ -204,7 +209,9 @@ procedure TTelegram4D.StopWebhook;
 begin
 try
  try
+  if TTelegramRequest.GetInfoWebhook(FConfig.TokenBot) then
   TTelegramRequest.DeleteWebhook(FConfig.TokenBot);
+
   {$IF DEFINED(HORSE_CGI)}
   THorse.StopListen;
   {$ELSE}
@@ -267,16 +274,13 @@ procedure TTelegram4D.StartPooling;
  end;
 
 procedure TTelegram4D.ShutDown;
- begin
- if Assigned(FRetMessagePooling) then
- FRetMessagePooling.Free;
-
+begin
  if Assigned(FThread) then
-  begin
-   FThread.FreeOnTerminate := true;
-   FThread.Terminate;
-  end;
+ begin
+  FThread.FreeOnTerminate := true;
+  FThread.Terminate;
  end;
+end;
 { TConfig }
 
 procedure TConfig.SetTokenBot(const Value: string);

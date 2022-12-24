@@ -10,9 +10,7 @@ object Form3: TForm3
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnClose = FormClose
-  PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
@@ -24,8 +22,6 @@ object Form3: TForm3
     Color = 15772444
     ParentBackground = False
     TabOrder = 0
-    ExplicitTop = 424
-    ExplicitWidth = 740
     object Label1: TLabel
       Left = 8
       Top = 7
@@ -50,8 +46,6 @@ object Form3: TForm3
     TabOrder = 1
     object TabSheet1: TTabSheet
       Caption = 'Message'
-      ExplicitLeft = 8
-      ExplicitTop = 22
       object Label2: TLabel
         Left = 66
         Top = 21
@@ -90,6 +84,7 @@ object Form3: TForm3
         EditLabel.Height = 13
         EditLabel.Caption = 'Message'
         TabOrder = 2
+        Text = ''
       end
       object LabeledEdit2: TLabeledEdit
         Left = 280
@@ -100,6 +95,7 @@ object Form3: TForm3
         EditLabel.Height = 13
         EditLabel.Caption = 'ChatID'
         TabOrder = 3
+        Text = ''
       end
       object Button2: TButton
         Left = 54
@@ -123,8 +119,6 @@ object Form3: TForm3
     object TabSheet2: TTabSheet
       Caption = 'Config'
       ImageIndex = 1
-      ExplicitLeft = 8
-      ExplicitTop = 22
       object LabeledEdit3: TLabeledEdit
         Left = 16
         Top = 32
@@ -189,6 +183,7 @@ object Form3: TForm3
         EditLabel.Font.Style = [fsBold]
         EditLabel.ParentFont = False
         TabOrder = 0
+        Text = ''
       end
       object LabeledEdit5: TLabeledEdit
         Left = 16
@@ -217,13 +212,5 @@ object Form3: TForm3
         OnClick = Button4Click
       end
     end
-  end
-  object Telegram4D: TTelegram4D
-    Config.TypeReceive = rmPooling
-    Webhook.Host = 'http://127.0.0.1:9000'
-    Webhook.Port = 9000
-    OnMessagePooling = Telegram4DMessagePooling
-    Left = 512
-    Top = 216
   end
 end
