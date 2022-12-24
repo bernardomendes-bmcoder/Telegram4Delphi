@@ -8,7 +8,6 @@ Componente de integração com Bot Telegram para Delphi 10.3+...
 
  - [Horse](https://github.com/HashLoad/horse)
  - [RestRequest4Delphi](https://github.com/viniciussanchez/RESTRequest4Delphi)
- - [Json4Delphi](https://github.com/rilyu/json4delphi)
 #### Disponibilizamos versões testadas das dependências citadas no nosso repositorio.
 
 ## Funcionalidades
