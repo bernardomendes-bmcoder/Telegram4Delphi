@@ -140,7 +140,7 @@ object Form3: TForm3
         Font.Style = []
         ParentFont = False
         TabOrder = 0
-        Text = '2049443060:AAEHxhr0ByYj2b4ecyXobkAjt92qfCu8LvY'
+        Text = ''
       end
       object ComboBox1: TComboBox
         Left = 16
