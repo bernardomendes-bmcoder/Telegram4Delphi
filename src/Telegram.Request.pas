@@ -16,8 +16,12 @@ type
 TTelegramRequest = class
  public
  class procedure SendMessage(const ATokenBot: string; const AChatID: string; AMessage: string);
+ class procedure SendButton(const ATokenBot: string; const AChatID: string; AMessage: string; AReplyMarkup: string; ATypeReplyMarkup: TReplyMarkupType = rmInline);
+ class procedure SendPoll(const ATokenBot: string; const AChatID: string; AQuestion: string; AOptions: string; Anonymous: Boolean = False; AMultiple: Boolean = false);
  class procedure SendImage(const ATokenBot: string; const AChatID: string; const AImageUrl: string; const ACaption: string);
- class function GetUpdate(const ATokenBot: string): TRetMessagePooling;
+ class procedure SendLocation(const ATokenBot: string; const AChatID: string; ALatitude: Extended; ALongitude: Extended);
+ class procedure SendDocument(const ATokenBot: string; const AChatID: string; const ADocumentUrl: string; const ACaption: string);
+ class function GetUpdate(const ATokenBot: string): TRespMessagePooling;
  class function GetInfoWebhook(ATokenBot: string): Boolean;
  class procedure ReadMessage(const ATokenBot: string; const AUpdateId: Integer);
  class procedure SetWebhook(const ATokenBot: string; const AUrl: string);
@@ -42,7 +46,7 @@ begin
   .Get;
 end;
 
-class function TTelegramRequest.GetUpdate(const ATokenBot: string): TRetMessagePooling;
+class function TTelegramRequest.GetUpdate(const ATokenBot: string): TRespMessagePooling;
 var
   LResponse: IResponse;
   URL : string;
@@ -62,9 +66,22 @@ begin
   try
    LJson := j4dl.TJson.Create;
    LJson.Parse(LResponse.Content);
-   if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
+   Result.RetType := '';
+
+   if Pos('callback_query',LJson.Stringify) = 0 then
    begin
-    Result := TJson.JsonToObject<TRetMessagePooling>(LResponse.Content);
+    if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
+    begin
+     Result.RetType           := 'N';
+     Result.RetMessagePooling := TJson.JsonToObject<TRetMessagePooling>(LResponse.Content);
+    end;
+   end else
+   begin
+    if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
+    begin
+     Result.RetType           := 'C';
+     Result.RetMessageCallback := TJson.JsonToObject<TRetMessageCallback>(LResponse.Content);
+    end;
    end;
   finally
    FreeAndNil(LJson);
@@ -83,6 +100,96 @@ begin
  LResponse := TRequest.New.BaseURL(URL)
  .AddParam('chat_id', AChatID)
  .AddParam('text', AMessage)
+ .AddParam('parse_mode','markdown')
+ .Accept('application/json')
+ .Get;
+end;
+
+class procedure TTelegramRequest.SendLocation(const ATokenBot: string; const AChatID: string; ALatitude: Extended; ALongitude: Extended);
+var
+  LResponse: IResponse;
+  URL: string;
+begin
+ URL := SEND_MESSAGE;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+
+ LResponse := TRequest.New.BaseURL(URL)
+ .AddParam('chat_id', AChatID)
+ .AddParam('latitude', FloatToStr(ALatitude))
+ .AddParam('longitude', FloatToStr(ALongitude))
+ .AddParam('parse_mode','markdown')
+ .Accept('application/json')
+ .Get;
+end;
+
+class procedure TTelegramRequest.SendPoll(const ATokenBot: string; const AChatID: string; AQuestion: string; AOptions: string; Anonymous: Boolean; AMultiple: Boolean);
+var
+  LResponse: IResponse;
+  URL: string;
+begin
+ URL := SEND_POLL;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+
+ LResponse := TRequest.New.BaseURL(URL)
+ .AddParam('chat_id', AChatID)
+ .AddParam('question', AQuestion)
+ .AddParam('options', AOptions)
+ .AddParam('is_anonymous', BoolToStr(Anonymous))
+ .AddParam('allows_multiple_answers', BoolToStr(AMultiple))
+ .AddParam('parse_mode','markdown')
+ .Accept('application/json')
+ .Get;
+end;
+
+class procedure TTelegramRequest.SendButton(const ATokenBot: string; const AChatID: string; AMessage: string; AReplyMarkup: string; ATypeReplyMarkup: TReplyMarkupType);
+var
+  LResponse: IResponse;
+  URL: string;
+  Json: j4dl.TJson;
+  JsonString: string;
+begin
+ try
+   Json := j4dl.TJson.Create;
+   if ATypeReplyMarkup = rmInline then
+   begin
+    Json.Parse(JSON_INLINE);
+    Json['inline_keyboard'].Parse(AReplyMarkup);
+   end;
+
+   if ATypeReplyMarkup = rmKeyboard then
+   begin
+    Json.Parse(JSON_KEYBOARD);
+    Json['keyboard'].Parse(AReplyMarkup);
+   end;
+
+   JsonString := Json.Stringify;
+
+   URL  := SEND_MESSAGE;
+   URL  :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+   LResponse := TRequest.New.BaseURL(URL)
+   .AddParam('chat_id', AChatID)
+   .AddParam('text', AMessage)
+   .AddParam('reply_markup', JsonString)
+   .AddParam('parse_mode','markdown')
+   .Accept('application/json')
+   .Get;
+ finally
+  FreeAndNil(Json);
+ end;
+end;
+
+class procedure TTelegramRequest.SendDocument(const ATokenBot, AChatID, ADocumentUrl, ACaption: string);
+var
+  LResponse: IResponse;
+  URL: string;
+begin
+ URL := SEND_DOCUMENT;
+ URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+
+ LResponse := TRequest.New.BaseURL(URL)
+ .AddParam('chat_id', AChatID)
+ .AddParam('caption', ACaption)
+ .AddParam('document', ADocumentUrl)
  .AddParam('parse_mode','markdown')
  .Accept('application/json')
  .Get;
@@ -163,4 +270,5 @@ begin
  .Accept('application/json')
  .Get;
 end;
+
 end.

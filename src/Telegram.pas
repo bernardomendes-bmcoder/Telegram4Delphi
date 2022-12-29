@@ -8,9 +8,9 @@ REST.Json,
 System.StrUtils,
 System.Variants,
 System.Classes,
+Telegram.Consts,
 Telegram.Request,
 Telegram.Returns,
-Telegram.Consts,
 Telegram.ReadMsg,
 Telegram.Returns.Pooling,
 System.SysUtils;
@@ -18,7 +18,7 @@ System.SysUtils;
 type
 TOnWebhookStatus  = procedure(const AStatus: Boolean = False) of object;
 TOnMessage        = procedure(ARetMessage: TRetMessage) of object;
-TOnMessagePooling = procedure(ARetMessage: TRetMessagePooling) of object;
+TOnMessagePooling = procedure(ARetMessage: TRespMessagePooling) of object;
 TOnError          = procedure(const AError: string) of object;
 
 TConfig = class(TComponent)
@@ -49,7 +49,7 @@ TTelegram4D = class(TComponent)
  FConfig : TConfig;
  FWebhook: TWebhook;
  FThread : TUnReadMsg;
- FRetMessagePooling: TRetMessagePooling;
+ FRetMessagePooling: TRespMessagePooling;
  FOnWebhookStatus: TOnWebhookStatus;
  FOnMessage: TOnMessage;
  FOnMessagePooling: TOnMessagePooling;
@@ -65,6 +65,10 @@ TTelegram4D = class(TComponent)
  property OnMessagePooling: TOnMessagePooling read FOnMessagePooling write FOnMessagePooling;
  public
  procedure SendMessage(const AChatID: string; AMessage: string);
+ procedure SendButton(const AChatID: string; AMessage: string; AReplyMarkup: string; ATypeReplyMarkup: TReplyMarkupType = rmInline);
+ procedure SendPoll(const AChatID: string; AQuestion: string; AOptions: string; Anonymous: Boolean = False; AMultiple: Boolean = false);
+ procedure SendLocation(const AChatID: string; ALatitude: Extended; ALongitude: Extended);
+ procedure SendDocument(const AChatID: string; const ADocumentUrl: string; const ACaption: string);
  procedure ReadMessage(const AUpdateId: Integer);
  procedure GetUpdate;
  procedure StartPooling;
@@ -118,8 +122,7 @@ end;
 
 destructor TTelegram4D.Destroy;
 begin
- if Assigned(FRetMessagePooling) then
- FRetMessagePooling.Free;
+ FRetMessagePooling.ClearObjects;
 
  if Assigned(FThread) then
  begin
@@ -156,11 +159,42 @@ procedure TTelegram4D.WhMessage(Req: THorseRequest; Res: THorseResponse);
 begin
  try
   if Assigned(FOnMessage) then
-  begin
    FOnMessage(TJson.JsonToObject<TRetMessage>(Req.Body));
-  end;
 
   Res.Status(200);
+ except
+  on E:Exception do
+  if Assigned(FOnError) then
+  FOnError(E.Message);
+ end;
+end;
+
+procedure TTelegram4D.SendButton(const AChatID: string; AMessage, AReplyMarkup: string; ATypeReplyMarkup: TReplyMarkupType);
+begin
+ try
+  TTelegramRequest.SendButton(FConfig.TokenBot, AChatID, AMessage, AReplyMarkup, ATypeReplyMarkup);
+ except
+  on E:Exception do
+  if Assigned(FOnError) then
+  FOnError(E.Message);
+ end;
+end;
+
+procedure TTelegram4D.SendDocument(const AChatID, ADocumentUrl, ACaption: string);
+begin
+ try
+  TTelegramRequest.SendDocument(FConfig.TokenBot,AChatID,ADocumentUrl,ACaption);
+ except
+  on E:Exception do
+  if Assigned(FOnError) then
+  FOnError(E.Message);
+ end;
+end;
+
+procedure TTelegram4D.SendLocation(const AChatID: string; ALatitude, ALongitude: Extended);
+begin
+ try
+  TTelegramRequest.SendLocation(FConfig.TokenBot,AChatID,ALatitude,ALongitude);
  except
   on E:Exception do
   if Assigned(FOnError) then
@@ -172,6 +206,17 @@ procedure TTelegram4D.SendMessage(const AChatID: string; AMessage: string);
 begin
  try
   TTelegramRequest.SendMessage(FConfig.TokenBot,AChatID,AMessage);
+ except
+  on E:Exception do
+  if Assigned(FOnError) then
+  FOnError(E.Message);
+ end;
+end;
+
+procedure TTelegram4D.SendPoll(const AChatID: string; AQuestion, AOptions: string; Anonymous, AMultiple: Boolean);
+begin
+ try
+  TTelegramRequest.SendPoll(FConfig.TokenBot, AChatID, AQuestion, AOptions, Anonymous, AMultiple);
  except
   on E:Exception do
   if Assigned(FOnError) then
@@ -248,20 +293,32 @@ procedure TTelegram4D.StartPooling;
       begin
         try
          FThread.Sleep(2000);
-         if not Assigned(FRetMessagePooling) then
-         FRetMessagePooling := TRetMessagePooling.Create;
-
          FRetMessagePooling := TTelegramRequest.GetUpdate(FConfig.TokenBot);
-         if Length(FRetMessagePooling.Result) > 0 then
+
+         if FRetMessagePooling.RetType = 'N' then
+         if Length(FRetMessagePooling.RetMessagePooling.Result) > 0 then
          begin
           if Assigned(FOnMessagePooling) then
           FOnMessagePooling(FRetMessagePooling);
 
-          for I := Low(FRetMessagePooling.Result) to High(FRetMessagePooling.Result) do
+          for I := Low(FRetMessagePooling.RetMessagePooling.Result) to High(FRetMessagePooling.RetMessagePooling.Result) do
           begin
-           TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.Result[I].UpdateId);
+           TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.RetMessagePooling.Result[I].UpdateId);
           end;
          end;
+
+         if FRetMessagePooling.RetType = 'C' then
+         if Length(FRetMessagePooling.RetMessageCallback.Result) > 0 then
+         begin
+          if Assigned(FOnMessagePooling) then
+          FOnMessagePooling(FRetMessagePooling);
+
+          for I := Low(FRetMessagePooling.RetMessageCallback.Result) to High(FRetMessagePooling.RetMessageCallback.Result) do
+          begin
+           TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.RetMessageCallback.Result[I].UpdateId);
+          end;
+         end;
+
         except
          on E:Exception do
          if Assigned(FOnError) then
