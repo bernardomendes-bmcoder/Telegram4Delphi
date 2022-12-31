@@ -66,20 +66,20 @@ begin
   try
    LJson := j4dl.TJson.Create;
    LJson.Parse(LResponse.Content);
-   Result.RetType := '';
+   Result.RetType := rtNull;
 
    if Pos('callback_query',LJson.Stringify) = 0 then
    begin
     if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
     begin
-     Result.RetType           := 'N';
+     Result.RetType           := rtNormal;
      Result.RetMessagePooling := TJson.JsonToObject<TRetMessagePooling>(LResponse.Content);
     end;
    end else
    begin
     if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
     begin
-     Result.RetType           := 'C';
+     Result.RetType            := rtCallback;
      Result.RetMessageCallback := TJson.JsonToObject<TRetMessageCallback>(LResponse.Content);
     end;
    end;

@@ -68,6 +68,39 @@ type
     destructor Destroy; override;
   end;
 
+  TCallbackQuery = class
+  private
+    [JSONName('chat_instance')]
+    FChatInstance: string;
+    FData: string;
+    FFrom: TFrom;
+    FId: string;
+    FMessage: TMessage;
+  published
+    property ChatInstance: string read FChatInstance write FChatInstance;
+    property Data: string read FData write FData;
+    property From: TFrom read FFrom;
+    property Id: string read FId write FId;
+    property Message: TMessage read FMessage;
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TRetMsgCallback = class
+  private
+    [JSONName('callback_query')]
+    FCallbackQuery: TCallbackQuery;
+    [JSONName('update_id')]
+    FUpdateId: Integer;
+  published
+    property CallbackQuery: TCallbackQuery read FCallbackQuery;
+    property UpdateId: Integer read FUpdateId write FUpdateId;
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
   TRetMessage = class
   private
     FMessage: TMessage;
@@ -111,6 +144,34 @@ destructor TRetMessage.Destroy;
 begin
  FMessage.Free;
  inherited;
+end;
+
+constructor TCallbackQuery.Create;
+begin
+  inherited;
+  FFrom := TFrom.Create;
+  FMessage := TMessage.Create;
+end;
+
+destructor TCallbackQuery.Destroy;
+begin
+  FFrom.Free;
+  FMessage.Free;
+  inherited;
+end;
+
+{ TRetMsgCallback }
+
+constructor TRetMsgCallback.Create;
+begin
+  inherited;
+  FCallbackQuery := TCallbackQuery.Create;
+end;
+
+destructor TRetMsgCallback.Destroy;
+begin
+  FCallbackQuery.Free;
+  inherited;
 end;
 
 end.

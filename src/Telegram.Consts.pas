@@ -3,6 +3,7 @@ unit Telegram.Consts;
 interface
 
  uses
+ Telegram.Returns,
  Telegram.Returns.Pooling;
 
  const
@@ -36,8 +37,9 @@ interface
  type
  TReceiveMessage  = (rmWebhook, rmPooling);
  TReplyMarkupType = (rmInline, rmKeyboard);
+ TRetType         = (rtNull, rtNormal, rtCallback);
 
- TRespMessage = record
+ TReturnMessage = record
   CallBackId: string;
   ChatId    : Integer;
   MessageId : Integer;
@@ -46,9 +48,17 @@ interface
  end;
 
 TRespMessagePooling = record
- RetType           : string;
+ RetType           : TRetType;
  RetMessagePooling : TRetMessagePooling;
  RetMessageCallback: TRetMessageCallback;
+
+ procedure ClearObjects;
+end;
+
+TRespMessage = record
+ RetType           : TRetType;
+ RetMessage        : TRetMessage;
+ RetMsgCallback    : TRetMsgCallback;
 
  procedure ClearObjects;
 end;
@@ -64,6 +74,17 @@ begin
 
  if Assigned(RetMessageCallback) then
  RetMessageCallback.Free;
+end;
+
+{ TRespMessage }
+
+procedure TRespMessage.ClearObjects;
+begin
+ if Assigned(RetMessage) then
+ RetMessage.Free;
+
+ if Assigned(RetMsgCallback) then
+ RetMsgCallback.Free;
 end;
 
 end.

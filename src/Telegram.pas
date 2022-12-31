@@ -17,7 +17,7 @@ System.SysUtils;
 
 type
 TOnWebhookStatus  = procedure(const AStatus: Boolean = False) of object;
-TOnMessage        = procedure(ARetMessage: TRetMessage) of object;
+TOnMessage        = procedure(ARetMessage: TRespMessage) of object;
 TOnMessagePooling = procedure(ARetMessage: TRespMessagePooling) of object;
 TOnError          = procedure(const AError: string) of object;
 
@@ -49,6 +49,7 @@ TTelegram4D = class(TComponent)
  FConfig : TConfig;
  FWebhook: TWebhook;
  FThread : TUnReadMsg;
+ FRespMessage: TRespMessage;
  FRetMessagePooling: TRespMessagePooling;
  FOnWebhookStatus: TOnWebhookStatus;
  FOnMessage: TOnMessage;
@@ -123,7 +124,7 @@ end;
 destructor TTelegram4D.Destroy;
 begin
  FRetMessagePooling.ClearObjects;
-
+ FRespMessage.ClearObjects;
  if Assigned(FThread) then
  begin
    FThread.FreeOnTerminate := true;
@@ -158,8 +159,23 @@ end;
 procedure TTelegram4D.WhMessage(Req: THorseRequest; Res: THorseResponse);
 begin
  try
-  if Assigned(FOnMessage) then
-   FOnMessage(TJson.JsonToObject<TRetMessage>(Req.Body));
+  FRespMessage.ClearObjects;
+  FRespMessage.RetType := rtNull;
+  if Pos('callback_query',Req.Body) = 0 then
+  begin
+   FRespMessage.RetType    := rtNormal;
+   FRespMessage.RetMessage := TJson.JsonToObject<TRetMessage>(Req.Body);
+   if Assigned(FOnMessage) then
+   FOnMessage(FRespMessage);
+  end;
+
+  if Pos('callback_query',Req.Body) > 0 then
+  begin
+   FRespMessage.RetType        := rtCallback;
+   FRespMessage.RetMsgCallback := TJson.JsonToObject<TRetMsgCallback>(Req.Body);
+   if Assigned(FOnMessage) then
+   FOnMessage(FRespMessage);
+  end;
 
   Res.Status(200);
  except
@@ -293,9 +309,10 @@ procedure TTelegram4D.StartPooling;
       begin
         try
          FThread.Sleep(2000);
+         FRetMessagePooling.ClearObjects;
          FRetMessagePooling := TTelegramRequest.GetUpdate(FConfig.TokenBot);
 
-         if FRetMessagePooling.RetType = 'N' then
+         if FRetMessagePooling.RetType = rtNormal then
          if Length(FRetMessagePooling.RetMessagePooling.Result) > 0 then
          begin
           if Assigned(FOnMessagePooling) then
@@ -307,7 +324,7 @@ procedure TTelegram4D.StartPooling;
           end;
          end;
 
-         if FRetMessagePooling.RetType = 'C' then
+         if FRetMessagePooling.RetType = rtCallback then
          if Length(FRetMessagePooling.RetMessageCallback.Result) > 0 then
          begin
           if Assigned(FOnMessagePooling) then
