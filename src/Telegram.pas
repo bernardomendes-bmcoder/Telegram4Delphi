@@ -125,10 +125,10 @@ destructor TTelegram4D.Destroy;
 begin
  FRetMessagePooling.ClearObjects;
  FRespMessage.ClearObjects;
+
  if Assigned(FThread) then
  begin
-   FThread.FreeOnTerminate := true;
-   FThread.Terminate;
+  FThread.Terminate;
  end;
  inherited;
 end;
@@ -303,57 +303,56 @@ procedure TTelegram4D.StartPooling;
   procedure
   var I: Integer;
   begin
-   while Assigned(FThread) do
+
+   if FConfig.TypeReceive = rmPooling then
     begin
-     if FConfig.TypeReceive = rmPooling then
-      begin
-        try
-         FThread.Sleep(2000);
-         FRetMessagePooling.ClearObjects;
-         FRetMessagePooling := TTelegramRequest.GetUpdate(FConfig.TokenBot);
+      try
+       if FThread.CheckTerminated then
+       Exit;
 
-         if FRetMessagePooling.RetType = rtNormal then
-         if Length(FRetMessagePooling.RetMessagePooling.Result) > 0 then
-         begin
-          if Assigned(FOnMessagePooling) then
-          FOnMessagePooling(FRetMessagePooling);
+       FRetMessagePooling := TTelegramRequest.GetUpdate(FConfig.TokenBot);
 
-          for I := Low(FRetMessagePooling.RetMessagePooling.Result) to High(FRetMessagePooling.RetMessagePooling.Result) do
-          begin
-           TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.RetMessagePooling.Result[I].UpdateId);
-          end;
-         end;
+       if FRetMessagePooling.RetType = rtNormal then
+       if Length(FRetMessagePooling.RetMessagePooling.Result) > 0 then
+       begin
+        if Assigned(FOnMessagePooling) then
+        FOnMessagePooling(FRetMessagePooling);
 
-         if FRetMessagePooling.RetType = rtCallback then
-         if Length(FRetMessagePooling.RetMessageCallback.Result) > 0 then
-         begin
-          if Assigned(FOnMessagePooling) then
-          FOnMessagePooling(FRetMessagePooling);
-
-          for I := Low(FRetMessagePooling.RetMessageCallback.Result) to High(FRetMessagePooling.RetMessageCallback.Result) do
-          begin
-           TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.RetMessageCallback.Result[I].UpdateId);
-          end;
-         end;
-
-        except
-         on E:Exception do
-         if Assigned(FOnError) then
-         FOnError(E.Message);
+        for I := Low(FRetMessagePooling.RetMessagePooling.Result) to High(FRetMessagePooling.RetMessagePooling.Result) do
+        begin
+         TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.RetMessagePooling.Result[I].UpdateId);
         end;
+       end;
+
+       if FRetMessagePooling.RetType = rtCallback then
+       if Length(FRetMessagePooling.RetMessageCallback.Result) > 0 then
+       begin
+        if Assigned(FOnMessagePooling) then
+        FOnMessagePooling(FRetMessagePooling);
+
+        for I := Low(FRetMessagePooling.RetMessageCallback.Result) to High(FRetMessagePooling.RetMessageCallback.Result) do
+        begin
+         TTelegramRequest.ReadMessage(FConfig.TokenBot,FRetMessagePooling.RetMessageCallback.Result[I].UpdateId);
+        end;
+       end;
+      except
+       on E:Exception do
+       if Assigned(FOnError) then
+       FOnError(E.Message);
       end;
     end;
-  end);
+  end,2000);
   FThread.Start;
  end;
 
 procedure TTelegram4D.ShutDown;
 begin
- if Assigned(FThread) then
- begin
-  FThread.FreeOnTerminate := true;
-  FThread.Terminate;
- end;
+  if FThread <> nil then
+  begin
+   FThread.Terminate;
+   FThread.WaitFor;
+   FThread.Free;
+  end;
 end;
 { TConfig }
 

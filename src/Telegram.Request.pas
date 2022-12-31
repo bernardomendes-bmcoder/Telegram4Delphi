@@ -28,6 +28,9 @@ TTelegramRequest = class
  class procedure DeleteWebhook(const ATokenBot: string);
 end;
 
+var
+FRespPooling: TRespMessagePooling;
+
 implementation
 
 //LIBERA A MENSAGEM
@@ -66,21 +69,24 @@ begin
   try
    LJson := j4dl.TJson.Create;
    LJson.Parse(LResponse.Content);
-   Result.RetType := rtNull;
+   FRespPooling.ClearObjects;
+   FRespPooling.RetType := rtNull;
 
    if Pos('callback_query',LJson.Stringify) = 0 then
    begin
     if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
     begin
-     Result.RetType           := rtNormal;
-     Result.RetMessagePooling := TJson.JsonToObject<TRetMessagePooling>(LResponse.Content);
+     FRespPooling.RetType           := rtNormal;
+     FRespPooling.RetMessagePooling := TJson.JsonToObject<TRetMessagePooling>(LResponse.Content);
+     Result := FRespPooling;
     end;
    end else
    begin
     if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
     begin
-     Result.RetType            := rtCallback;
-     Result.RetMessageCallback := TJson.JsonToObject<TRetMessageCallback>(LResponse.Content);
+     FRespPooling.RetType            := rtCallback;
+     FRespPooling.RetMessageCallback := TJson.JsonToObject<TRetMessageCallback>(LResponse.Content);
+     Result := FRespPooling;
     end;
    end;
   finally

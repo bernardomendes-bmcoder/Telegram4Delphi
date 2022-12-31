@@ -8,24 +8,32 @@ Type
 TUnReadMsg = class(TThread)
  private
  FUnThreadProc: TProc;
+ FSleepTime   : Integer;
  public
- constructor Create(const ThreadProc: TProc);
+ constructor Create(AThreadProc: TProc; const ASleepTime: Integer = 1000);
+ protected
  procedure Execute; override;
 end;
 
 implementation
 
 { TUnReadMsg }
-constructor TUnReadMsg.Create(const ThreadProc: TProc);
+constructor TUnReadMsg.Create(AThreadProc: TProc; const ASleepTime: Integer);
 begin
   inherited Create(True);
-  FreeOnTerminate := True;
-  FUnThreadProc   := ThreadProc;
+  FreeOnTerminate := False;
+  Priority        := tpLower;
+  FUnThreadProc   := AThreadProc;
+  FSleepTime      := ASleepTime;
 end;
 
 procedure TUnReadMsg.Execute;
 begin
   inherited;
+ While not Terminated do
+ begin
+  Sleep(FSleepTime);
   FUnThreadProc;
+ end;
 end;
 end.

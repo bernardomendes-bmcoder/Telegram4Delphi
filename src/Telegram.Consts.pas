@@ -4,7 +4,8 @@ interface
 
  uses
  Telegram.Returns,
- Telegram.Returns.Pooling;
+ Telegram.Returns.Pooling,
+ System.SysUtils;
 
  const
  SEND_MESSAGE   = 'https://api.telegram.org/bot<token>/sendMessage';
@@ -70,10 +71,10 @@ implementation
 procedure TRespMessagePooling.ClearObjects;
 begin
  if Assigned(RetMessagePooling) then
- RetMessagePooling.Free;
+ FreeAndNil(RetMessagePooling);
 
  if Assigned(RetMessageCallback) then
- RetMessageCallback.Free;
+ FreeAndNil(RetMessageCallback);
 end;
 
 { TRespMessage }
@@ -81,10 +82,10 @@ end;
 procedure TRespMessage.ClearObjects;
 begin
  if Assigned(RetMessage) then
- RetMessage.Free;
+ FreeAndNil(RetMessage);
 
  if Assigned(RetMsgCallback) then
- RetMsgCallback.Free;
+ FreeAndNil(RetMsgCallback);
 end;
 
 end.
