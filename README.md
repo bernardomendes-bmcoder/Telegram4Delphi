@@ -12,8 +12,9 @@ Componente de integração com Bot Telegram para Delphi 10.3+...
 
 ## Funcionalidades
 
-- SendMessage
+- SendMessage (Buttons and Messages)
 - SendPhoto
+- SendPool
 - Received Message Webhook
 - Received Message Pooling
 - Breve mais funcionalidades
