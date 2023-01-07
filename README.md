@@ -26,11 +26,11 @@ Componente de integração com Bot Telegram para Delphi 10.3+...
 Insira no library patch ou search patch
 
 ```bash
-.\package
-..\src  
-..\extras\horse
-..\extras\j4dl
-..\extras\rr4d
+package
+src  
+extras\horse
+extras\j4dl
+extras\rr4d
 ```
 Execute o arquivo .dpr
 ```bash
