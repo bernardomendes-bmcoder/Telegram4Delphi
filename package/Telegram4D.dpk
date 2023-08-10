@@ -40,8 +40,7 @@ requires
   FireDAC,
   FireDACCommonDriver,
   FireDACCommon,
-  MercadoPago,
-  FutBet4Delphi;
+  MercadoPago;
 
 contains
   Telegram.Emoticons in '..\src\Telegram.Emoticons.pas',

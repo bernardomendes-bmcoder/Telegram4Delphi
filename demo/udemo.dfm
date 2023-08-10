@@ -213,4 +213,12 @@ object Form3: TForm3
       end
     end
   end
+  object Telegram4D1: TTelegram4D
+    Config.TypeReceive = rmWebhook
+    Webhook.Host = 'http://127.0.0.1:9000'
+    Webhook.Port = 9000
+    OnMessagePooling = Telegram4D1MessagePooling
+    Left = 472
+    Top = 295
+  end
 end

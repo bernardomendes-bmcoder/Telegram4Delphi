@@ -4,6 +4,7 @@ interface
 
 uses
 Horse,
+Rest.Json.Types,
 REST.Json,
 System.StrUtils,
 System.Variants,

@@ -2,7 +2,9 @@ unit Telegram.ReadMsg;
 
 interface
 
-Uses System.Classes, System.SysUtils;
+Uses
+System.Classes,
+System.SysUtils;
 
 Type
 TUnReadMsg = class(TThread)

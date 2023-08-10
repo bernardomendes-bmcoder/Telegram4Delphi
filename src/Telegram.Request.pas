@@ -3,7 +3,8 @@ unit Telegram.Request;
 interface
 
 uses
-j4dl,
+Json,
+REST.Json.Types,
 REST.Json,
 System.StrUtils,
 System.Variants,
@@ -16,7 +17,7 @@ type
 TTelegramRequest = class
  public
  class procedure SendMessage(const ATokenBot: string; const AChatID: string; AMessage: string);
- class procedure SendButton(const ATokenBot: string; const AChatID: string; AMessage: string; AReplyMarkup: string; ATypeReplyMarkup: TReplyMarkupType = rmInline);
+ class procedure SendButton(const ATokenBot: string; const AChatID: string; AMessage: string; AReplyMarkup: array of string; ATypeReplyMarkup: TReplyMarkupType = rmInline);
  class procedure SendPoll(const ATokenBot: string; const AChatID: string; AQuestion: string; AOptions: string; Anonymous: Boolean = False; AMultiple: Boolean = false);
  class procedure SendImage(const ATokenBot: string; const AChatID: string; const AImageUrl: string; const ACaption: string);
  class procedure SendLocation(const ATokenBot: string; const AChatID: string; ALatitude: Extended; ALongitude: Extended);
@@ -53,7 +54,7 @@ class function TTelegramRequest.GetUpdate(const ATokenBot: string): TRespMessage
 var
   LResponse: IResponse;
   URL : string;
-  LJson: j4dl.TJson;
+  LJson: TJSONObject;
   UpdateId: Integer;
 begin
   URL := GET_UPDATE;
@@ -67,14 +68,13 @@ begin
  if LResponse.StatusCode = 200 then
  begin
   try
-   LJson := j4dl.TJson.Create;
-   LJson.Parse(LResponse.Content);
+   LJson := TJSONObject.ParseJSONValue(LResponse.Content) as TJSONObject;
    FRespPooling.ClearObjects;
    FRespPooling.RetType := rtNull;
 
-   if Pos('callback_query',LJson.Stringify) = 0 then
+   if Pos('callback_query',LJson.ToString) = 0 then
    begin
-    if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
+    if (LJson.GetValue('result') as TJSONArray).Count > 0 then
     begin
      FRespPooling.RetType           := rtNormal;
      FRespPooling.RetMessagePooling := TJson.JsonToObject<TRetMessagePooling>(LResponse.Content);
@@ -82,7 +82,7 @@ begin
     end;
    end else
    begin
-    if LJson.JsonObject.Values['result'].AsArray.Count > 0 then
+    if (LJson.GetValue('result') as TJSONArray).Count > 0 then
     begin
      FRespPooling.RetType            := rtCallback;
      FRespPooling.RetMessageCallback := TJson.JsonToObject<TRetMessageCallback>(LResponse.Content);
@@ -147,41 +147,52 @@ begin
  .Get;
 end;
 
-class procedure TTelegramRequest.SendButton(const ATokenBot: string; const AChatID: string; AMessage: string; AReplyMarkup: string; ATypeReplyMarkup: TReplyMarkupType);
+class procedure TTelegramRequest.SendButton(const ATokenBot: string; const AChatID: string; AMessage: string; AReplyMarkup: array of string; ATypeReplyMarkup: TReplyMarkupType);
 var
   LResponse: IResponse;
   URL: string;
-  Json: j4dl.TJson;
+  JsonObj: TJSONObject;
+  JsonArray: TJSONArray;
   JsonString: string;
+  i: Integer;
 begin
- try
-   Json := j4dl.TJson.Create;
-   if ATypeReplyMarkup = rmInline then
-   begin
-    Json.Parse(JSON_INLINE);
-    Json['inline_keyboard'].Parse(AReplyMarkup);
-   end;
+  try
+    JsonObj := TJSONObject.Create;
+    if ATypeReplyMarkup = rmInline then
+    begin
+      JsonArray := TJSONArray.Create;
+      for i := 0 to High(AReplyMarkup) do
+      begin
+        var ButtonObj := TJSONObject.Create;
+        ButtonObj.AddPair('text', AReplyMarkup[i]);
+        JsonArray.AddElement(ButtonObj);
+      end;
 
-   if ATypeReplyMarkup = rmKeyboard then
-   begin
-    Json.Parse(JSON_KEYBOARD);
-    Json['keyboard'].Parse(AReplyMarkup);
-   end;
+      JsonObj.AddPair('inline_keyboard', TJSONArray.Create(JsonArray));
+    end;
 
-   JsonString := Json.Stringify;
+    if ATypeReplyMarkup = rmKeyboard then
+    begin
+      JsonArray := TJSONArray.Create;
+      for i := 0 to High(AReplyMarkup) do
+        JsonArray.AddElement(TJSONObject.Create(TJSONPair.Create('text', AReplyMarkup[i])));
+      JsonObj.AddPair('keyboard', TJSONArray.Create(JsonArray));
+    end;
 
-   URL  := SEND_MESSAGE;
-   URL  :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
-   LResponse := TRequest.New.BaseURL(URL)
-   .AddParam('chat_id', AChatID)
-   .AddParam('text', AMessage)
-   .AddParam('reply_markup', JsonString)
-   .AddParam('parse_mode','markdown')
-   .Accept('application/json')
-   .Get;
- finally
-  FreeAndNil(Json);
- end;
+    JsonString := JsonObj.ToString;
+
+    URL  := SEND_MESSAGE;
+    URL  := StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
+    LResponse := TRequest.New.BaseURL(URL)
+    .AddParam('chat_id', AChatID)
+    .AddParam('text', AMessage)
+    .AddParam('reply_markup', JsonString)
+    .AddParam('parse_mode','markdown')
+    .Accept('application/json')
+    .Get;
+  finally
+    FreeAndNil(JsonObj);
+  end;
 end;
 
 class procedure TTelegramRequest.SendDocument(const ATokenBot, AChatID, ADocumentUrl, ACaption: string);
@@ -222,32 +233,35 @@ class function TTelegramRequest.GetInfoWebhook(ATokenBot: string): Boolean;
 var
   LResponse: IResponse;
   URL: string;
-  LJson: j4dl.TJson;
+  LJson: TJSONObject;
+  LResult: TJSONValue;
+  LUrl: TJSONValue;
 begin
- URL := INFO_WEBHOOK;
- URL :=StringReplace(URL,'<token>',ATokenBot,[rfReplaceAll]);
-try
- try
-  LResponse := TRequest.New.BaseURL(URL)
-  .Accept('application/json')
-  .Get;
+  Result := False;
+  URL := INFO_WEBHOOK;
+  URL := StringReplace(URL, '<token>', ATokenBot, [rfReplaceAll]);
+  try
+    LResponse := TRequest.New.BaseURL(URL)
+      .Accept('application/json')
+      .Get;
 
-  if LResponse.StatusCode = 200 then
-  begin
-   LJson := j4dl.TJson.Create;
-   LJson.Parse(LResponse.Content);
-   if LJson.JsonObject.Values['result'].AsObject.Values['url'].AsString = '' then
-   Result := False;
-
-   if LJson.JsonObject.Values['result'].AsObject.Values['url'].AsString <> '' then
-   Result := True;
+    if LResponse.StatusCode = 200 then
+    begin
+      LJson := TJSONObject.ParseJSONValue(LResponse.Content) as TJSONObject;
+      if Assigned(LJson) then
+      begin
+        LResult := LJson.GetValue('result');
+        if Assigned(LResult) and (LResult is TJSONObject) then
+        begin
+          LUrl := TJSONObject(LResult).GetValue('url');
+          if Assigned(LUrl) and (LUrl.Value <> '') then
+            Result := True;
+        end;
+      end;
+    end;
+  finally
+    FreeAndNil(LJson);
   end;
- finally
-  FreeAndNil(LJson);
- end;
-except
- Result := False;
-end;
 end;
 
 class procedure TTelegramRequest.SetWebhook(const ATokenBot: string; const AUrl: string);
